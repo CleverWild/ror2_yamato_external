@@ -1,0 +1,14 @@
+{
+    "cSpell.words": [
+        "Aarch",
+        "eframe",
+        "egui",
+        "Yamato"
+    ],
+    "rust-analyzer.linkedProjects": [
+        "gui/Cargo.toml",
+        "memory/Cargo.toml",
+        "Cargo.toml",
+    ],
+    "git.ignoreLimitWarning": true
+}
