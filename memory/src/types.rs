@@ -1,4 +1,5 @@
 use faithe::FaitheError;
+use std::rc::Rc;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -6,10 +7,12 @@ use thiserror::Error;
 
 pub use aobscan::Pattern as ExternPattern;
 pub use aobscan::PatternBuilder as ExternPatternBuilder;
+pub use tracing::{debug, error, info, trace, warn};
 
 pub type UPtr = usize;
 pub type Address = usize;
 pub type ArcMutex<T> = Arc<Mutex<T>>;
+pub type RcMutex<T> = Rc<Mutex<T>>;
 pub type AutoResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub enum MemorySelector {
     GodMode,
@@ -59,7 +62,7 @@ impl Into<Box<[Option<u8>]>> for Pattern {
 }
 impl Into<String> for Pattern {
     fn into(self) -> String {
-        let mut buf: String;
+        let mut buf = String::new();
         for b in self.bytes {
             match b {
                 Some(b) => {
@@ -76,7 +79,10 @@ impl Into<String> for Pattern {
 impl Into<ExternPattern> for Pattern {
     fn into(self) -> ExternPattern {
         let pattern: String = self.into();
-        ExternPatternBuilder::from_ida_style(&pattern).unwrap().with_all_threads().build()
+        ExternPatternBuilder::from_ida_style(&pattern)
+            .unwrap()
+            .with_all_threads()
+            .build()
     }
 }
 
@@ -84,7 +90,7 @@ impl Into<ExternPattern> for Pattern {
 pub enum ValueTypes {
     #[default]
     Undefined,
-    Ptr(UPtr),
+    Address(UPtr),
     Bytes1(bool),
     Bytes2(i16),
     Bytes2U(u16),
@@ -98,28 +104,28 @@ pub enum ValueTypes {
 }
 impl PartialEq for ValueTypes {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Undefined, Self::Undefined) => true,
-            (Self::Ptr(_), Self::Ptr(_)) => true,
-            (Self::Bytes1(_), Self::Bytes1(_)) => true,
-            (Self::Bytes2(_), Self::Bytes2(_)) => true,
-            (Self::Bytes2U(_), Self::Bytes2U(_)) => true,
-            (Self::Bytes4(_), Self::Bytes4(_)) => true,
-            (Self::Bytes4U(_), Self::Bytes4U(_)) => true,
-            (Self::Bytes8(_), Self::Bytes8(_)) => true,
-            (Self::Bytes8U(_), Self::Bytes8U(_)) => true,
-            (Self::Float(_), Self::Float(_)) => true,
-            (Self::Double(_), Self::Double(_)) => true,
-            (Self::RawBytes(_), Self::RawBytes(_)) => true,
-            _ => false,
-        }
+        matches!(
+            (self, other),
+            (Self::Undefined, Self::Undefined)
+                | (Self::Address(_), Self::Address(_))
+                | (Self::Bytes1(_), Self::Bytes1(_))
+                | (Self::Bytes2(_), Self::Bytes2(_))
+                | (Self::Bytes2U(_), Self::Bytes2U(_))
+                | (Self::Bytes4(_), Self::Bytes4(_))
+                | (Self::Bytes4U(_), Self::Bytes4U(_))
+                | (Self::Bytes8(_), Self::Bytes8(_))
+                | (Self::Bytes8U(_), Self::Bytes8U(_))
+                | (Self::Float(_), Self::Float(_))
+                | (Self::Double(_), Self::Double(_))
+                | (Self::RawBytes(_), Self::RawBytes(_))
+        )
     }
 }
 impl ToString for ValueTypes {
     fn to_string(&self) -> String {
         match self {
             ValueTypes::Undefined => "undefined".to_string(),
-            ValueTypes::Ptr(_) => "ptr".to_string(),
+            ValueTypes::Address(_) => "address".to_string(),
             ValueTypes::Bytes1(_) => "bool".to_string(),
             ValueTypes::Bytes2(_) => "i16".to_string(),
             ValueTypes::Bytes2U(_) => "u16".to_string(),
@@ -147,7 +153,7 @@ pub enum IOError {
     #[error("invalid header (expected {expected:?}, found {found:?})")]
     TypeError { expected: String, found: String },
     #[error("external lib memory errors")]
-    MemoryFailed(FaitheError),
+    MemoryFailed(#[from] FaitheError),
     #[error("read access unavailable")]
     ReadAccessUnavailable,
     #[error("write access unavailable")]
@@ -158,8 +164,8 @@ impl Default for IOError {
         Self::Unexpected
     }
 }
-impl From<FaitheError> for IOError {
-    fn from(err: FaitheError) -> Self {
-        IOError::MemoryFailed(err)
-    }
-}
+// impl From<FaitheError> for IOError {
+//     fn from(err: FaitheError) -> Self {
+//         IOError::MemoryFailed(err)
+//     }
+// }

@@ -3,11 +3,14 @@
         "Aarch",
         "eframe",
         "egui",
-        "Yamato"
+        "READWRITE",
+        "WRITECOPY",
+        "Yamato",
+        "имплементацию"
     ],
     "rust-analyzer.linkedProjects": [
-        "gui/Cargo.toml",
         "memory/Cargo.toml",
+        "gui/Cargo.toml",
         "Cargo.toml",
     ],
     "git.ignoreLimitWarning": true
